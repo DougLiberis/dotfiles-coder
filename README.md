@@ -29,7 +29,8 @@ every workspace start and on the **Refresh Dotfiles** button.
 |---|---|
 | tmux | Copies `tmux.conf` → `~/.tmux.conf`; clones TPM + catppuccin; installs plugins (resurrect, continuum, sensible) |
 | neovim | Merge-copies `config/nvim/` → `~/.config/nvim/` (LazyVim); headless `Lazy! sync` if `nvim` is present |
-| git | Copies `gitconfig` → `~/.config/git/dotfiles-coder.gitconfig` and wires it in via an **additive** `include.path` (never overwrites `~/.gitconfig`) |
+| git identity | Sets `user.name`/`user.email` **directly** (runs after the entrypoint, so it overrides the default `liberis-ai-engineer[bot]` identity — commits are authored as you) |
+| git prefs | Copies `gitconfig` → `~/.config/git/dotfiles-coder.gitconfig` and wires it in via an **additive** `include.path` (editor, aliases; never overwrites `~/.gitconfig`) |
 | bash | Idempotent, interactivity-guarded append to `~/.bashrc` to auto-attach to a persistent tmux `main` session |
 
 The script **assumes `tmux` and `nvim` are already installed** in the workspace
@@ -48,6 +49,19 @@ touches entrypoint-managed files additively:
 
 If `install.sh` ever breaks your shell, blank the **Dotfiles URI** parameter,
 restart, fix the script, then set the URI back and use **Refresh Dotfiles**.
+
+## Commit attribution vs. auth (they're separate)
+
+- **Authorship** (the name/email *inside* each commit) comes from `user.name`/
+  `user.email`. The entrypoint defaults these to a bot; `install.sh` overrides
+  them to me. For commits to link to my GitHub profile, `doug.finnie@liberis.com`
+  must be a **verified email** on the GitHub account.
+- **Authentication** (who is allowed to push/pull) is handled entirely by the
+  Coder entrypoint via the credential-vault sidecar — either the shared Workspace
+  PAT or, if the template enables per-engineer tokens, a **personal GitHub PAT**
+  supplied as a workspace parameter (or browser OAuth in External-Auth mode).
+  This repo deliberately does **not** configure auth, and **never** stores a PAT
+  (secrets must not live in dotfiles).
 
 ## Recovery / re-apply
 
