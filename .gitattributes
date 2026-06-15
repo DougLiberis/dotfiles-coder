@@ -1,0 +1,4 @@
+# This repo is consumed on Linux (Coder workspaces). Force LF on everything so
+# install.sh and configs never get CRLF line endings (a \r in the shebang would
+# break the script).
+* text=auto eol=lf

@@ -1,0 +1,10 @@
+# Included additively from ~/.gitconfig by install.sh.
+# Deliberately omits signing/gpg, credential helpers, and LFS — those are either
+# managed by the Coder workspace entrypoint or depend on local keys absent here.
+[user]
+	email = doug.finnie@liberis.com
+	name = Doug Finnie
+[core]
+	editor = nvim
+[alias]
+	rm-merged = !git branch --format '%(refname:short) %(upstream:track)' | awk '$2 == \"[gone]\" { print $1 }' | xargs -r git branch -D
