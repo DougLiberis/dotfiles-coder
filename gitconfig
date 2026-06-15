@@ -1,9 +1,10 @@
-# Included additively from ~/.gitconfig by install.sh.
-# Deliberately omits signing/gpg, credential helpers, and LFS — those are either
-# managed by the Coder workspace entrypoint or depend on local keys absent here.
-[user]
-	email = doug.finnie@liberis.com
-	name = Doug Finnie
+# Personal git preferences, included additively from ~/.gitconfig by install.sh.
+#
+# Identity (user.name / user.email) is NOT set here — install.sh sets it
+# directly so it reliably overrides the entrypoint's default bot identity.
+# Auth (credential helpers, url.insteadOf proxy routing) is owned by the Coder
+# entrypoint and must not be set here. Signing/GPG and LFS are omitted (no local
+# keys in the workspace).
 [core]
 	editor = nvim
 [alias]

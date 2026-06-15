@@ -58,9 +58,21 @@ else
 fi
 
 # ---------- git ----------
-# Use an additive include so we never clobber the entrypoint-managed ~/.gitconfig
-# (credential helpers, gh auth, proxy settings).
-log "Configuring git via additive include"
+# IDENTITY: the workspace entrypoint sets a DEFAULT BOT identity before dotfiles
+# run (liberis-ai-engineer[bot] in PAT mode, or the GitHub App login in App
+# mode). Dotfiles run AFTER the entrypoint, so setting these directly overrides
+# the bot — commits are then authored as you. (`git config` replaces existing
+# values, so this is safe to run unconditionally.)
+log "Setting git identity (overrides entrypoint bot identity)"
+git config --global user.name  "Doug Finnie"
+git config --global user.email "doug.finnie@liberis.com"
+
+# AUTH is deliberately NOT touched here. The entrypoint owns the credential
+# helper / url.insteadOf proxy routing that authenticates pushes — leave it be.
+#
+# Other preferences (editor, aliases) come via an additive include so we never
+# rewrite the entrypoint-managed ~/.gitconfig wholesale.
+log "Applying git preferences via additive include"
 mkdir -p "$HOME/.config/git"
 cp "$DOTFILES_DIR/gitconfig" "$HOME/.config/git/dotfiles-coder.gitconfig"
 include_target="$HOME/.config/git/dotfiles-coder.gitconfig"
