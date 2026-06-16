@@ -6,8 +6,9 @@
 # workspace entrypoint. Must be idempotent: running twice must not duplicate
 # entries or corrupt config.
 #
-# Assumes tmux and neovim already exist in the workspace image — this script
-# only places config and bootstraps plugins (no binary installs, no sudo).
+# Assumes tmux already exists in the workspace image. neovim is installed into
+# ~/.local if missing (no sudo); this script otherwise only places config and
+# bootstraps plugins.
 #
 # Protected files (managed by entrypoint.sh) are touched ADDITIVELY only:
 #   ~/.bashrc                guarded append (never overwrite)
@@ -43,6 +44,32 @@ if command -v git >/dev/null 2>&1; then
   fi
 fi
 
+# ---------- neovim binary (no root) ----------
+# The workspace image is expected to ship neovim, but not all images do. If it's
+# missing, install a prebuilt release into ~/.local (persistent home volume, on
+# PATH) so the headless plugin sync below can run. No sudo.
+if ! command -v nvim >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/nvim" ]; then
+  case "$(uname -m)" in
+    x86_64)  nvim_asset="nvim-linux-x86_64.tar.gz" ;;
+    aarch64) nvim_asset="nvim-linux-arm64.tar.gz" ;;
+    *)       nvim_asset=""; log "unsupported arch $(uname -m) — skipping nvim install" ;;
+  esac
+  if [ -n "$nvim_asset" ]; then
+    log "neovim not found — installing $nvim_asset into ~/.local"
+    nvim_tmp="$(mktemp -d)"
+    if curl -fsSL -o "$nvim_tmp/nvim.tar.gz" \
+        "https://github.com/neovim/neovim/releases/download/stable/$nvim_asset"; then
+      mkdir -p "$HOME/.local"
+      tar -xzf "$nvim_tmp/nvim.tar.gz" -C "$HOME/.local" --strip-components=1 \
+        && log "neovim installed to ~/.local" \
+        || log "neovim extract failed — continuing"
+    else
+      log "neovim download failed — continuing"
+    fi
+    rm -rf "$nvim_tmp"
+  fi
+fi
+
 # ---------- neovim / LazyVim ----------
 log "Placing neovim config"
 mkdir -p "$HOME/.config/nvim"
@@ -50,11 +77,15 @@ mkdir -p "$HOME/.config/nvim"
 # state on the persistent home volume survive across boots.
 cp -R "$DOTFILES_DIR/config/nvim/." "$HOME/.config/nvim/"
 
-if command -v nvim >/dev/null 2>&1; then
+# Resolve nvim even if ~/.local/bin isn't on PATH yet (fresh non-login shell).
+nvim_bin="$(command -v nvim 2>/dev/null || true)"
+[ -z "$nvim_bin" ] && [ -x "$HOME/.local/bin/nvim" ] && nvim_bin="$HOME/.local/bin/nvim"
+
+if [ -n "$nvim_bin" ]; then
   log "Syncing LazyVim plugins (headless)"
-  nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || log "Lazy sync returned non-zero (continuing)"
+  "$nvim_bin" --headless "+Lazy! sync" +qa >/dev/null 2>&1 || log "Lazy sync returned non-zero (continuing)"
 else
-  log "nvim not on PATH — config placed; plugins will sync on first launch"
+  log "nvim not available — config placed; plugins will sync on first launch"
 fi
 
 # ---------- git ----------
