@@ -126,6 +126,44 @@ if [ ! -f "$HOME/.bash_profile" ] && [ ! -f "$HOME/.bash_login" ] && [ ! -f "$HO
 PROFILE
 fi
 
+# ---------- ssh commit signing ----------
+# Sign every commit with a per-workspace SSH key so it's verifiable that the
+# commit was made from this workspace. The PRIVATE key is generated locally and
+# NEVER committed to the dotfiles repo (it lives only in ~/.ssh on the
+# persistent home volume). Register the PUBLIC key with GitHub as a *Signing
+# Key* (Settings -> SSH and GPG keys -> New SSH key -> type "Signing Key") to
+# get the "Verified" badge on GitHub.
+#
+# Idempotent: the key is only generated when absent, so it survives reboots and
+# is regenerated only if the home volume is recreated.
+SIGNING_KEY="$HOME/.ssh/id_ed25519_signing"
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+if [ ! -f "$SIGNING_KEY" ]; then
+  log "Generating SSH commit-signing key ($SIGNING_KEY)"
+  ssh-keygen -t ed25519 -N "" \
+    -C "doug.finnie@liberis.com (coder workspace signing key)" \
+    -f "$SIGNING_KEY" >/dev/null
+fi
+
+# Tell git to sign with the SSH key (gpg.format=ssh, no GPG involved) and to
+# sign commits and tags by default. Set directly so the absolute key path is
+# resolved against this user's $HOME.
+log "Configuring git SSH commit signing"
+git config --global gpg.format ssh
+git config --global user.signingkey "$SIGNING_KEY.pub"
+git config --global commit.gpgsign true
+git config --global tag.gpgsign true
+
+# allowed_signers lets local `git log --show-signature` / `git verify-commit`
+# confirm the signature instead of reporting "no principal matched".
+allowed_signers="$HOME/.ssh/allowed_signers"
+printf '%s %s\n' "doug.finnie@liberis.com" "$(cat "$SIGNING_KEY.pub")" > "$allowed_signers"
+git config --global gpg.ssh.allowedSignersFile "$allowed_signers"
+
+log "Commit-signing public key (register on GitHub as a Signing Key):"
+cat "$SIGNING_KEY.pub"
+
 # ---------- bashrc: auto-attach to tmux ----------
 # Append-only with idempotency guard. The inline interactivity check ($-) keeps
 # non-interactive shells (agents, scripts) from being hijacked into tmux.

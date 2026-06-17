@@ -3,8 +3,9 @@
 # Identity (user.name / user.email) is NOT set here — install.sh sets it
 # directly so it reliably overrides the entrypoint's default bot identity.
 # Auth (credential helpers, url.insteadOf proxy routing) is owned by the Coder
-# entrypoint and must not be set here. Signing/GPG and LFS are omitted (no local
-# keys in the workspace).
+# entrypoint and must not be set here. SSH commit signing is configured in
+# install.sh (not here) because it generates a per-workspace key under ~/.ssh
+# and needs the absolute $HOME path. LFS is omitted.
 [core]
 	editor = nvim
 [alias]
