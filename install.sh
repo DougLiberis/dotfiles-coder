@@ -111,6 +111,21 @@ if ! git config --global --get-all include.path 2>/dev/null | grep -qxF "$includ
   git config --global --add include.path "$include_target"
 fi
 
+# ---------- login shells: ensure ~/.bashrc is sourced ----------
+# `coder ssh` (and SSH generally) start a LOGIN shell, which sources
+# ~/.bash_profile | ~/.bash_login | ~/.profile — but NOT ~/.bashrc. Without one
+# of those chaining to ~/.bashrc, the tmux auto-attach below never runs on
+# connect (you land at a bare prompt and `tmux a` reports "no sessions"). Create
+# a minimal ~/.bash_profile only if no login-shell entry point already exists.
+if [ ! -f "$HOME/.bash_profile" ] && [ ! -f "$HOME/.bash_login" ] && [ ! -f "$HOME/.profile" ]; then
+  log "Creating ~/.bash_profile to source ~/.bashrc for login shells"
+  cat > "$HOME/.bash_profile" <<'PROFILE'
+# Login shells source this, not ~/.bashrc. Chain to ~/.bashrc so interactive
+# login shells (e.g. `coder ssh`) get the same setup, including tmux auto-attach.
+[ -f ~/.bashrc ] && . ~/.bashrc
+PROFILE
+fi
+
 # ---------- bashrc: auto-attach to tmux ----------
 # Append-only with idempotency guard. The inline interactivity check ($-) keeps
 # non-interactive shells (agents, scripts) from being hijacked into tmux.
