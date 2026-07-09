@@ -145,6 +145,12 @@ if [ ! -f "$SIGNING_KEY" ]; then
     -C "doug.finnie@liberis.com (coder workspace signing key)" \
     -f "$SIGNING_KEY" >/dev/null
 fi
+# Unconditional, outside the generation guard: if the home volume is ever
+# restored/synced from elsewhere (backup, migration, chezmoi re-apply) the key
+# can land with a looser mode picked up from that process's umask. OpenSSH
+# refuses to load a group/world-readable private key, so re-assert 600 on
+# every run rather than only at generation time.
+chmod 600 "$SIGNING_KEY"
 
 # Tell git to sign with the SSH key (gpg.format=ssh, no GPG involved) and to
 # sign commits and tags by default. Set directly so the absolute key path is
