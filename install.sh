@@ -111,6 +111,21 @@ if ! git config --global --get-all include.path 2>/dev/null | grep -qxF "$includ
   git config --global --add include.path "$include_target"
 fi
 
+# ---------- claude: design-council skill ----------
+# The design-council plugin is vendored here (rather than installed via a
+# Claude Code plugin marketplace) because the workspace's plugin-marketplace
+# registry (~/.claude/plugins/known_marketplaces.json and the
+# extraKnownMarketplaces block in ~/.claude/settings.json) gets reset on every
+# workspace boot by something upstream of dotfiles — even marketplaces pinned
+# via extraKnownMarketplaces do not survive. Skills placed under
+# ~/.claude/skills/ are auto-loaded every session with no marketplace/registry
+# involved at all, and are unaffected by that reset. Merge-copy (trailing /.)
+# so this stays in sync with the vendored copy without disturbing anything a
+# future `claude plugin update`-equivalent might place alongside it.
+log "Syncing design-council Claude skill"
+mkdir -p "$HOME/.claude/skills/design-council"
+cp -R "$DOTFILES_DIR/claude-skills/design-council/." "$HOME/.claude/skills/design-council/"
+
 # ---------- login shells: ensure ~/.bashrc is sourced ----------
 # `coder ssh` (and SSH generally) start a LOGIN shell, which sources
 # ~/.bash_profile | ~/.bash_login | ~/.profile — but NOT ~/.bashrc. Without one
